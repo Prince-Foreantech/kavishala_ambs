@@ -14,40 +14,42 @@ from django.views.decorators.csrf import csrf_exempt
 def user_signup(request):
     try:
         if request.method == "POST":
+            body_unicode = request.body.decode('utf-8')
+            data = json.loads(body_unicode)
             try:
-                user = signup.objects.get(username=request.POST['username'])
+                user = signup.objects.get(username=data['username'])
                 if user:
-                    message = messages.error(request,'Username Already Taken')
                     return HttpResponse("User name already taken")
-        
-                else:
+            except:
+                try:
                     user = signup()
-                    user.username = request.POST['username']
-                    user.password = request.POST['password']
-                    user.name = request.POST['name']
-                    user.city = request.POST['city']
-                    user.email = request.POST['email']
-                    if request.POST['contact_number'] != 10:
-                        return redirect('pass')
-                    else:
-                        user.contact_number = request.POST['contact_number']
-                    user.course_year = request.POST['course_year']
+                    user.username = data['username']
+                    user.password = data['password']
+                    user.name = data['name']
+                    user.city = data['city']
+                    user.email = data['email']
+                    user.contact_number=data['contact_number']
+                    user.course_year = data['course_year']
+                    user.college_name = data['college_name']
+                    user.instagram_url = data['instagram_url']
+                    user.twitter_url = data['twitter_url']
+                    user.facebook_url = data['facebook_url']
                     user.save()
                     return HttpResponse("User Saved")
-            except:
-                message = messages.error(request,'Please try after sometime !')
-                return HttpResponse("Unkown Error")
+                except:
+                    return HttpResponse("Signup Error data not getting")
     except:
-        return HttpResponse("method is not post")
+        return HttpResponse("Unkown Error")
+                
 @csrf_exempt
 def loginValidate(request):
     try:
         if request.method=="POST":
-            user = signup.objects.get(username=request.POST['username'],password=request.POST['password'])
+            body_unicode = request.body.decode("utf-8")
+            data = json.loads(body_unicode)
+            user = signup.objects.get(username=data['username'],password=data['password'])
             if user:
-                if user.confirmation=='True':
-                    message = messages.success('Signed In')
-                    return HttpResponse("User Matched")
+                return HttpResponse("User Matched")
             else:
                 return HttpResponse("Wait for confirmation")
     except:

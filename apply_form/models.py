@@ -6,7 +6,7 @@ class signup(models.Model):
     password=models.CharField(max_length=50)
     name=models.CharField(max_length=100)
     email=models.EmailField()
-    contact_number=models.IntegerField()
+    contact_number=models.CharField(max_length=10)
     college_name=models.CharField(max_length=100)
     city=models.CharField(max_length=50)
     course_year=models.CharField(max_length=150)

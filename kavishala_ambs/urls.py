@@ -15,7 +15,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from apply_form.views import loginValidate, user_signup
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('login',loginValidate),
+    path('signup',user_signup),
 ]
