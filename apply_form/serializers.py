@@ -12,5 +12,4 @@ class user(serializers.Serializer):
     instagram_url=serializers.CharField(max_length=500)
     twitter_url=serializers.CharField(max_length=500)
     facebook_url=serializers.CharField(max_length=500)
-    confirmation = serializers.CharField(max_length=10)
     

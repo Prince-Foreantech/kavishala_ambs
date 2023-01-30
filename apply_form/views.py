@@ -1,10 +1,5 @@
-from django.shortcuts import render
-
-# Create your views here.
-from django.shortcuts import render,redirect
 import json
-from  django.contrib import messages
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseBadRequest
 from apply_form.models import signup
 from .serializers import user
 from rest_framework.renderers import JSONRenderer
@@ -19,16 +14,39 @@ def user_signup(request):
             try:
                 user = signup.objects.get(username=data['username'])
                 if user:
-                    return HttpResponse("User name already taken")
+                    return HttpResponseBadRequest("User name already taken")
             except:
                 try:
+                    msg = None
                     user = signup()
-                    user.username = data['username']
-                    user.password = data['password']
+                    if not data['username']:
+                        msg = "enter a user name"
+                        return HttpResponseBadRequest(msg)
+                    else:
+                        user.username = data['username']
+                    if not data['password']:
+                        msg = "Enter a password"
+                        return HttpResponseBadRequest(msg)
+                    elif len(data['password']) < 8:
+                        msg="Password must be greater than 8 Characters"
+                        return HttpResponseBadRequest(msg)
+                    else:
+                        user.password = data['password']
                     user.name = data['name']
                     user.city = data['city']
-                    user.email = data['email']
-                    user.contact_number=data['contact_number']
+                    if not data['email']:
+                        msg = "Please enter email id"
+                        return HttpResponseBadRequest(msg)
+                    else:
+                        user.email = data['email']
+                    if not data['contact_number']:
+                        msg = "Enter contact number"
+                        return HttpResponseBadRequest(msg)
+                    elif len(data['contact_number']) != 10:
+                        msg = "Enter a valid number"
+                        return HttpResponseBadRequest(msg)
+                    else:
+                        user.contact_number=data['contact_number']
                     user.course_year = data['course_year']
                     user.college_name = data['college_name']
                     user.instagram_url = data['instagram_url']
@@ -37,26 +55,34 @@ def user_signup(request):
                     user.save()
                     return HttpResponse("User Saved")
                 except:
-                    return HttpResponse("Signup Error data not getting")
+                    return HttpResponseBadRequest("Signup Error Not getting proper data")
     except:
-        return HttpResponse("Unkown Error")
+        return HttpResponseBadRequest("Unkown Error")
                 
 @csrf_exempt
 def loginValidate(request):
     try:
         if request.method=="POST":
-            body_unicode = request.body.decode("utf-8")
+            body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
-            user = signup.objects.get(username=data['username'],password=data['password'])
-            if user:
-                return HttpResponse("User Matched")
+            users = signup.objects.get(username=data['username'],password=data['password'])
+            if users:
+                request.session['user_token'] = data['username']
+                alluser = user(users)
+                userdata = JSONRenderer().render(alluser.data)
+                return HttpResponse(userdata, content_type="application/json")
             else:
-                return HttpResponse("Wait for confirmation")
+                return HttpResponseBadRequest("Username or password Incorrect")
     except:
-        return HttpResponse("Please try after sometime")
+        return HttpResponseBadRequest("Please try after sometime")
+def logout(request):
+    del request.session['user_token']
+    return HttpResponse("User Logout")
 
 def getAllUser(request):
-    users = signup.objects.all()
-    alluser = user(users, many=True)
-    userdata = JSONRenderer().render(alluser.data)
+    if request.session.has_key('user_token'):
+        print("pooht")
+        users = signup.objects.all()
+        alluser = user(users, many=True)
+        userdata = JSONRenderer().render(alluser.data)
     return HttpResponse(userdata, content_type='application/json')

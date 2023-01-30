@@ -1,5 +1,5 @@
 from django.db import models
-
+from rest_framework.authtoken.models import Token
 # Create your models here.
 class signup(models.Model):
     username=models.CharField(max_length=50)
@@ -13,7 +13,6 @@ class signup(models.Model):
     instagram_url=models.CharField(max_length=500)
     twitter_url=models.CharField(max_length=500)
     facebook_url=models.CharField(max_length=500)
-    confirmation = models.CharField(max_length=10)
 
     def __str__(self):
         return self.username
