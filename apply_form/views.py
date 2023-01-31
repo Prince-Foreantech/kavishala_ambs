@@ -3,6 +3,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from apply_form.models import signup
 from .serializers import user
 from rest_framework.renderers import JSONRenderer
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.views.decorators.csrf import csrf_exempt
 # Create your views here.
 @csrf_exempt
@@ -12,9 +13,9 @@ def user_signup(request):
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             try:
-                user = signup.objects.get(username=data['username'])
+                user = signup.objects.get_queryset(email=data['email'])
                 if user:
-                    return HttpResponseBadRequest("User name already taken")
+                    return HttpResponseBadRequest("User has been registered")
             except:
                 try:
                     msg = None
@@ -67,10 +68,12 @@ def loginValidate(request):
             data = json.loads(body_unicode)
             users = signup.objects.get(username=data['username'],password=data['password'])
             if users:
-                request.session['user_token'] = data['username']
+                token = get_tokens_for_user(users)
                 alluser = user(users)
                 userdata = JSONRenderer().render(alluser.data)
-                return HttpResponse(userdata, content_type="application/json")
+                response_data = {"data":userdata.decode(),"token":token}
+                data_token = json.dumps(response_data)
+                return HttpResponse(data_token,content_type="application/json")
             else:
                 return HttpResponseBadRequest("Username or password Incorrect")
     except:
@@ -86,3 +89,13 @@ def getAllUser(request):
         alluser = user(users, many=True)
         userdata = JSONRenderer().render(alluser.data)
     return HttpResponse(userdata, content_type='application/json')
+
+
+
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
