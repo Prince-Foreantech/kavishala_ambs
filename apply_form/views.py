@@ -1,5 +1,6 @@
+import re
 import json
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseServerError
 from apply_form.models import signup
 from .serializers import user
 from rest_framework.renderers import JSONRenderer
@@ -13,7 +14,7 @@ def user_signup(request):
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             try:
-                user = signup.objects.get_queryset(email=data['email'])
+                user = signup.objects.get(username=data['username'])
                 if user:
                     return HttpResponseBadRequest("User has been registered")
             except:
@@ -54,11 +55,13 @@ def user_signup(request):
                     user.twitter_url = data['twitter_url']
                     user.facebook_url = data['facebook_url']
                     user.save()
-                    return HttpResponse("User Saved")
+                    token = get_tokens_for_user(signup.objects.get(username=data['username'],password=data['password']))
+                    print(token)
+                    return HttpResponse(json.dumps(token))
                 except:
                     return HttpResponseBadRequest("Signup Error Not getting proper data")
     except:
-        return HttpResponseBadRequest("Unkown Error")
+        return HttpResponseServerError("Unkown Error")
                 
 @csrf_exempt
 def loginValidate(request):
@@ -77,9 +80,9 @@ def loginValidate(request):
             else:
                 return HttpResponseBadRequest("Username or password Incorrect")
     except:
-        return HttpResponseBadRequest("Please try after sometime")
+        return HttpResponseServerError("Please try after sometime")
 def logout(request):
-    del request.session['user_token']
+    pass
     return HttpResponse("User Logout")
 
 def getAllUser(request):
@@ -90,12 +93,29 @@ def getAllUser(request):
         userdata = JSONRenderer().render(alluser.data)
     return HttpResponse(userdata, content_type='application/json')
 
+@csrf_exempt
+def loginvalidat(request):
+    try:
+        if request.method=="POST":
+            body_unicode = request.body.decode('utf-8')
+            data = json.loads(body_unicode)
+            users = signup.objects.get(username=data['username'],password=data['password'])
+            if users:
+                token = get_tokens_for_user(users)
+                alluser = user(users)
+                userdata = JSONRenderer().render(alluser.data)
+                response_data = {"data":userdata.decode(),"token":token}
+                data_token = json.dumps(response_data)
+                return HttpResponse(data_token,content_type="application/json")
+            else:
+                return HttpResponseBadRequest("Username or password Incorrect")
+    except:
+        return HttpResponseBadRequest("Please try after sometime")
 
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
 
     return {
-        'refresh': str(refresh),
         'access': str(refresh.access_token),
     }
